@@ -1,0 +1,39 @@
+name: mariadb
+services:
+  db:
+    image: mariadb:latest
+    container_name: mariadb-server
+    hostname: mariadb
+    ports:
+      - '3306:3306'
+    volumes:
+      - /var/lib/srv/$USER/docker/library/mariadb/latest/rootfs/data/db/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_USER=${DB_USER_NAME}
+      - MYSQL_PASSWORD=${DB_USER_PASS}
+      - MYSQL_ROOT_PASSWORD=${DB_ADMIN_PASS}
+      - MYSQL_DATABASE=${DB_CREATE_DATABASE_NAME}
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'host.docker.internal:host-gateway'
+
+  admin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: mariadb-admin
+    hostname: phpmyadmin
+    ports:
+      - '172.17.0.1:52001:80'
+    environment:
+      - TZ=America/New_York
+      - PMA_ARBITRARY=0
+      - PMA_HOSTS=sqldb.us,mariadb
+      - PMA_CONTROLUSER=root
+      - PMA_CONTROLPASS=${DB_ADMIN_PASS}
+      - PMA_PMADB=phpmyadmin
+      - MAX_EXECUTION_TIME=3600
+      - UPLOAD_LIMIT=10G
+    depends_on:
+      - db
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'host.docker.internal:host-gateway'
