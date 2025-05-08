@@ -1,21 +1,30 @@
+# nginx proxy address - http://172.17.0.1:52001
+
 name: mariadb
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
 services:
   admin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: mariadb-admin
-    hostname: phpmyadmin
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
+    logging: *default-logging
     environment:
       - TZ=${TZ:-America/New_York}
-      - PMA_ARBITRARY=0
-      - PMA_HOSTS=mariadb
-      - PMA_CONTROLUSER=root
-      - PMA_CONTROLPASS=${DB_ADMIN_PASS:-password}
-      - PMA_PMADB=phpmyadmin
       - UPLOAD_LIMIT=10G
       - HIDE_PHP_VERSION=true
       - MAX_EXECUTION_TIME=3600
+      - PMA_ARBITRARY=0
+      - PMA_HOSTS=72.17.0.1
+      - PMA_PMADB=phpmyadmin
+      - PMA_CONTROLUSER=root
+      - PMA_CONTROLPASS=${DB_ADMIN_PASS:-eGnAncEsWtvDHgAexjoeWDnfUriB28uO}
     ports:
       - '172.17.0.1:52001:80'
     depends_on:
@@ -29,30 +38,21 @@ services:
       - mariadb
   db:
     image: mariadb:latest
-    container_name: mariadb
+    container_name: mariadb-server
     hostname: mariadb
     restart: always
     pull_policy: always
+    logging: *default-logging
     environment:
       - TZ=${TZ:-America/New_York}
       - MARIADB_ALLOW_EMPTY_PASSWORD=false
-      - MARIADB_USER=${DB_USER_NAME}
-      - MARIADB_PASSWORD=${DB_USER_PASS}
-      - MARIADB_DATABASE=${DB_CREATE_DATABASE_NAME}
-      - MARIADB_ROOT_PASSWORD=${DB_ADMIN_PASS:-password}
+      - MARIADB_ROOT_PASSWORD=${DB_ADMIN_PASS:-eGnAncEsWtvDHgAexjoeWDnfUriB28uO}
     ports:
       - '3306:3306'
     volumes:
-      - /var/lib/srv/$USER/docker/library/mariadb/latest/rootfs/data/db/mysql:/var/lib/mysql
+      - /var/lib/srv/$USER/docker/db/mysql/server:/var/lib/mysql
     healthcheck:
-      test:
-        [
-          'CMD',
-          'healthcheck.sh',
-          '--su-mysql',
-          '--connect',
-          '--innodb_initialized',
-        ]
+      test: ['CMD', 'healthcheck.sh', '--su-mysql', '--connect', '--innodb_initialized']
       start_period: 1m
       start_interval: 10s
       interval: 1m
