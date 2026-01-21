@@ -1,0 +1,78 @@
+# nginx proxy address - http://172.17.0.1:52001
+
+name: mariadb
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  admin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: mariadb-admin
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      UPLOAD_LIMIT: 10G
+      HIDE_PHP_VERSION: true
+      MAX_EXECUTION_TIME: 3600
+      PMA_ARBITRARY: 0
+      PMA_HOSTS: 72.17.0.1
+      PMA_PMADB: phpmyadmin
+      PMA_CONTROLUSER: root
+      PMA_CONTROLPASS: ${DB_ADMIN_PASS:-changeme_admin_password}
+    ports:
+      - '172.17.0.1:52001:80'
+    depends_on:
+      db:
+        condition: service_healthy
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'mariadb:host-gateway'
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - mariadb
+  db:
+    image: mariadb:latest
+    container_name: mariadb-server
+    hostname: mariadb
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      MARIADB_ALLOW_EMPTY_PASSWORD: false
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-changeme_admin_password}
+    ports:
+      - '3306:3306'
+    volumes:
+      - './rootfs/db/mariadb:/var/lib/mysql'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'healthcheck.sh',
+          '--su-mysql',
+          '--connect',
+          '--innodb_initialized',
+        ]
+      start_period: 1m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'mariadb:host-gateway'
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - mariadb
+
+networks:
+  mariadb:
+    name: mariadb
+    external: false
