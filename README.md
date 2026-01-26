@@ -1,31 +1,36 @@
 ## 👋 Welcome to mariadb 🚀
 
-MariaDB - Drop-in MySQL replacement relational database
+Community-developed fork of MySQL relational database
 
 ## 📋 Description
 
-MariaDB is a community-developed, commercially supported fork of MySQL. Designed as a drop-in replacement for MySQL with more features, improved performance, and better licensing (GPL).
+Community-developed fork of MySQL relational database
 
 ## 🚀 Services
 
-- **db**: MariaDB 11 (`mariadb:11`)
+- **admin**: phpmyadmin/phpmyadmin:latest
+
+### Infrastructure Components
+
+- **db**: Mariadb database
+
 
 ## 📦 Installation
 
-### Using curl
-```shell
-curl -q -LSsf "https://raw.githubusercontent.com/composemgr/mariadb/main/docker-compose.yaml" | docker compose -f - up -d
+### Option 1: Quick Install
+```bash
+curl -q -LSsf "https://raw.githubusercontent.com/composemgr/mariadb/main/docker-compose.yaml" -o compose.yml
 ```
 
-### Using git
-```shell
+### Option 2: Git Clone
+```bash
 git clone "https://github.com/composemgr/mariadb" ~/.local/srv/docker/mariadb
 cd ~/.local/srv/docker/mariadb
 docker compose up -d
 ```
 
-### Using composemgr
-```shell
+### Option 3: Using composemgr
+```bash
 composemgr install mariadb
 ```
 
@@ -35,80 +40,56 @@ composemgr install mariadb
 
 ```shell
 TZ=America/New_York
-
-# Root credentials
-MYSQL_ROOT_PASSWORD=changeme_root_password
-
-# Optional: Create database and user
-MYSQL_DATABASE=myapp
-MYSQL_USER=myapp
-MYSQL_PASSWORD=changeme_user_password
+DB_ADMIN_PASS=changeme_admin_password
 ```
+
+See `docker-compose.yaml` for complete list of configurable options.
 
 ## 🌐 Access
 
-- **MariaDB**: localhost:3306 (from Docker host)
-- **Connection String**: `mysql://user:password@localhost:3306/database`
+- **Web Interface**: http://172.17.0.1:52001
 
 ## 📂 Volumes
 
-- `./rootfs/db/mariadb/mariadb` - Database files
+- `./rootfs/data/db/mariadb` - Data storage
 
 ## 🔐 Security
 
-- Change default root password
-- Create app-specific users (don't use root)
-- Use strong passwords
-- Limit remote access
-- Regular security updates
-
-### Create Application User
-```sql
-CREATE USER 'myapp'@'%' IDENTIFIED BY 'secure_password';
-CREATE DATABASE myapp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-GRANT ALL PRIVILEGES ON myapp_db.* TO 'myapp'@'%';
-FLUSH PRIVILEGES;
-```
+- Change all default passwords before deploying to production
+- Use strong secrets for all authentication tokens
+- Configure HTTPS using a reverse proxy (nginx, traefik, caddy)
+- Regularly update Docker images for security patches
+- Backup your data regularly
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f db
+docker compose logs -f admin
 ```
 
 ## 🛠️ Management
 
-### Connect to MySQL shell
-```shell
-docker compose exec db mysql -u root -p
-```
+```bash
+# Start services
+docker compose up -d
 
-### Run SQL commands
-```shell
-docker compose exec db mysql -u root -p -e "SHOW DATABASES;"
-```
+# Stop services
+docker compose down
 
-## 🔄 Backup & Restore
+# Update to latest images
+docker compose pull && docker compose up -d
 
-### Backup
-```shell
-# Single database
-docker compose exec db mysqldump -u root -p mydb > mydb-backup.sql
+# View logs
+docker compose logs -f
 
-# All databases
-docker compose exec db mysqldump -u root -p --all-databases > all-backup.sql
-```
-
-### Restore
-```shell
-cat mydb-backup.sql | docker compose exec -T db mysql -u root -p mydb
+# Restart services
+docker compose restart
 ```
 
 ## 📋 Requirements
 
 - Docker Engine 20.10+
 - Docker Compose V2+
-- 256MB+ RAM minimum
 
 ## 🤝 Author
 
