@@ -50,7 +50,7 @@ services:
     ports:
       - '3306:3306'
     volumes:
-      - './rootfs/data/db/mariadb:/var/lib/mysql'
+      - './volumes/data/db/mariadb:/var/lib/mysql'
     healthcheck:
       test:
         [
