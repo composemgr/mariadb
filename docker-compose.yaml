@@ -17,6 +17,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: mariadb-admin
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       UPLOAD_LIMIT: 10G
       HIDE_PHP_VERSION: true
       MAX_EXECUTION_TIME: 3600
@@ -36,6 +38,24 @@ services:
       - 'host.docker.internal:host-gateway'
     networks:
       - mariadb
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://mariadb-admin:80'
+      - 'cloudflare.hostname=mariadb.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.mariadb-admin.entrypoints=http'
+      - 'traefik.http.routers.mariadb-admin-secure.tls=true'
+      - 'traefik.http.routers.mariadb-admin.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.mariadb-admin-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.mariadb-admin.middlewares=mariadb-admin-https-redirect'
+      - 'traefik.http.routers.mariadb-admin-secure.entrypoints=https'
+      - 'traefik.http.routers.mariadb-admin-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.mariadb-admin-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.mariadb-admin-secure.service=mariadb-admin'
+      - 'traefik.http.services.mariadb-admin.loadbalancer.server.port=80'
   db:
     image: mariadb:latest
     container_name: mariadb-server
@@ -45,6 +65,7 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: mariadb-server
       MARIADB_ALLOW_EMPTY_PASSWORD: false
       MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-changeme_admin_password}
     ports:
@@ -76,3 +97,7 @@ networks:
   mariadb:
     name: mariadb
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
