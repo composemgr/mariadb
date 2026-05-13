@@ -23,7 +23,7 @@ services:
       HIDE_PHP_VERSION: true
       MAX_EXECUTION_TIME: 3600
       PMA_ARBITRARY: 0
-      PMA_HOSTS: 72.17.0.1
+      PMA_HOSTS: 172.17.0.1
       PMA_PMADB: phpmyadmin
       PMA_CONTROLUSER: root
       PMA_CONTROLPASS: ${DB_ADMIN_PASS:-changeme_admin_password}
