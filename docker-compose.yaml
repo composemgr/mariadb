@@ -1,4 +1,4 @@
-# nginx proxy address - http://172.17.0.1:52001
+# nginx proxy address - http://172.17.0.1:64245
 
 name: mariadb
 x-logging: &default-logging
@@ -11,6 +11,7 @@ services:
   admin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: mariadb-admin
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
     hostname: ${BASE_HOST_NAME:-$HOSTNAME}
     restart: always
     pull_policy: always
@@ -26,39 +27,23 @@ services:
       PMA_HOSTS: 172.17.0.1
       PMA_PMADB: phpmyadmin
       PMA_CONTROLUSER: root
-      PMA_CONTROLPASS: ${DB_ADMIN_PASS:-changeme_admin_password}
+      PMA_CONTROLPASS: ${DB_ADMIN_PASS:-replace-with-a-random-password}
     ports:
-      - '172.17.0.1:52001:80'
-    depends_on:
-      db:
-        condition: service_healthy
+      - '172.17.0.1:64245:80'
     extra_hosts:
       - 'localhost:172.17.0.1'
       - 'mariadb:host-gateway'
       - 'host.docker.internal:host-gateway'
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - mariadb
-      - proxy
-      - cloudflare
-    labels:
-      - 'traefik.enable=true'
-      - 'cloudflare.enable=true'
-      - 'traefik.docker.network=proxy'
-      - 'cloudflare.service=http://mariadb-admin:80'
-      - 'cloudflare.hostname=mariadb.${CLOUDFLARE_ZONE_NAME:-}'
-      - 'traefik.http.routers.mariadb-admin.entrypoints=http'
-      - 'traefik.http.routers.mariadb-admin-secure.tls=true'
-      - 'traefik.http.routers.mariadb-admin.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.middlewares.mariadb-admin-https-redirect.redirectscheme.scheme=https'
-      - 'traefik.http.routers.mariadb-admin.middlewares=mariadb-admin-https-redirect'
-      - 'traefik.http.routers.mariadb-admin-secure.entrypoints=https'
-      - 'traefik.http.routers.mariadb-admin-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
-      - 'traefik.http.routers.mariadb-admin-secure.tls.certresolver=cloudflare'
-      - 'traefik.http.routers.mariadb-admin-secure.service=mariadb-admin'
-      - 'traefik.http.services.mariadb-admin.loadbalancer.server.port=80'
+
   db:
     image: mariadb:latest
     container_name: mariadb-server
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
     hostname: mariadb
     restart: always
     pull_policy: always
@@ -67,9 +52,7 @@ services:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: mariadb-server
       MARIADB_ALLOW_EMPTY_PASSWORD: false
-      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-changeme_admin_password}
-    ports:
-      - '3306:3306'
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-replace-with-a-random-password}
     volumes:
       - './volumes/data/db/mariadb:/var/lib/mysql'
     healthcheck:
@@ -86,6 +69,8 @@ services:
       interval: 1m
       timeout: 5s
       retries: 3
+    ports:
+      - '3306:3306'
     extra_hosts:
       - 'localhost:172.17.0.1'
       - 'mariadb:host-gateway'
@@ -97,7 +82,3 @@ networks:
   mariadb:
     name: mariadb
     external: false
-  proxy:
-    external: true
-  cloudflare:
-    external: true

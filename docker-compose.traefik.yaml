@@ -1,0 +1,94 @@
+# nginx proxy address - http://172.17.0.1:64245
+name: mariadb
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  admin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: mariadb-admin
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: mariadb-admin
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      UPLOAD_LIMIT: 10G
+      HIDE_PHP_VERSION: true
+      MAX_EXECUTION_TIME: 3600
+      PMA_ARBITRARY: 0
+      PMA_HOSTS: 172.17.0.1
+      PMA_PMADB: phpmyadmin
+      PMA_CONTROLUSER: root
+      PMA_CONTROLPASS: ${DB_ADMIN_PASS:-replace-with-a-random-password}
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'mariadb:host-gateway'
+      - 'host.docker.internal:host-gateway'
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.mariadb-admin.entrypoints=http'
+      - 'traefik.http.routers.mariadb-admin.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.mariadb-admin.middlewares=mariadb-admin-https-redirect'
+      - 'traefik.http.middlewares.mariadb-admin-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.mariadb-admin-secure.entrypoints=https'
+      - 'traefik.http.routers.mariadb-admin-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.mariadb-admin-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.mariadb-admin-secure.service=mariadb-admin'
+      - 'traefik.http.services.mariadb-admin.loadbalancer.server.port=80'
+    networks:
+      - mariadb
+      - traefik
+
+  db:
+    image: mariadb:latest
+    container_name: mariadb-server
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: mariadb
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: mariadb-server
+      MARIADB_ALLOW_EMPTY_PASSWORD: false
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-replace-with-a-random-password}
+    volumes:
+      - './volumes/data/db/mariadb:/var/lib/mysql'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'healthcheck.sh',
+          '--su-mysql',
+          '--connect',
+          '--innodb_initialized',
+        ]
+      start_period: 1m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+    extra_hosts:
+      - 'localhost:172.17.0.1'
+      - 'mariadb:host-gateway'
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - mariadb
+
+networks:
+  mariadb:
+    name: mariadb
+    external: false
+  traefik:
+    external: true
