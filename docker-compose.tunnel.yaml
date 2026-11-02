@@ -55,6 +55,8 @@ services:
       CONTAINER_NAME: mariadb-server
       MARIADB_ALLOW_EMPTY_PASSWORD: false
       MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-replace-with-a-random-password}
+    ports:
+      - '3306:3306'
     volumes:
       - './volumes/data/db/mariadb:/var/lib/mysql'
     healthcheck:
